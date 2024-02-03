@@ -64,12 +64,22 @@ def convertImageIntoPILFormat(image):
     )
 
 
+def get_default_ui_unit(is_ui=True):
+    from scripts.controlnet_ui.controlnet_ui_group import UiControlNetUnit
+    from scripts import external_code
+    cls = UiControlNetUnit if is_ui else external_code.ControlNetUnit
+    return cls(
+        enabled=False,
+        module="none",
+        model="None"
+    )
+
 class CNInExtrasTab(scripts_postprocessing.ScriptPostprocessing):
     name = NAME
     order = 18000
 
     def ui(self):
-        self.default_unit = self.get_default_ui_unit()
+        self.default_unit = get_default_ui_unit()
         with (
             InputAccordion(False, label=NAME) if InputAccordion
             else gr.Accordion(NAME, open=False)
@@ -79,7 +89,7 @@ class CNInExtrasTab(scripts_postprocessing.ScriptPostprocessing):
                 self.enable = gr.Checkbox(False, label="Enable")
             with gr.Row():
                 modulesList = list(getCNModules().keys())
-                self.module = gr.Dropdown(modulesList, label="Method", value=modulesList[0])
+                self.module = gr.Dropdown(modulesList, label="Module", value=modulesList[0])
                 self.pixel_perfect = gr.Checkbox(
                     label="Pixel Perfect",
                     value=True,
@@ -129,18 +139,6 @@ class CNInExtrasTab(scripts_postprocessing.ScriptPostprocessing):
                 interactive=True,
                 elem_id=f"extras_controlnet_threshold_B_slider",
             )
-
-
-    @staticmethod
-    def get_default_ui_unit(is_ui=True):
-        from scripts.controlnet_ui.controlnet_ui_group import UiControlNetUnit
-        from scripts import external_code
-        cls = UiControlNetUnit if is_ui else external_code.ControlNetUnit
-        return cls(
-            enabled=False,
-            module="none",
-            model="None"
-        )
 
 
     def register_build_sliders(self):
