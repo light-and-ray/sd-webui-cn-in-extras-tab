@@ -12,10 +12,6 @@ else:
 
 NAME = 'ControlNet Preprocessor'
 
-def extraImagesAvaliable():
-    pp = scripts_postprocessing.PostprocessedImage(None)
-    return hasattr(pp, 'extra_images')
-
 
 g_cn_modules = None
 def getCNModules():
