@@ -18,7 +18,7 @@ def getCNModules():
     global g_cn_modules
     if g_cn_modules is None:
         import scripts.global_state
-        g_cn_modules = scripts.global_state.cn_preprocessor_modules
+        g_cn_modules = copy.copy(scripts.global_state.cn_preprocessor_modules)
         inpaintKeys = []
         for key in g_cn_modules:
             if key.startswith('inpaint'):
@@ -48,11 +48,8 @@ g_cn_HWC3 = None
 def convertIntoCNImageFromat(image):
     global g_cn_HWC3
     if g_cn_HWC3 is None:
-        try:
-            from annotator.util import HWC3
-            g_cn_HWC3 = HWC3
-        except ImportError as e:
-            raise Exception("Controlnet is not installed for 'Lama Cleaner'")
+        from annotator.util import HWC3
+        g_cn_HWC3 = HWC3
 
     color = g_cn_HWC3(np.asarray(image))
     return color
