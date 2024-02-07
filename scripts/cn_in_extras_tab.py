@@ -3,7 +3,7 @@ import numpy as np
 import gradio as gr
 from PIL import Image
 from modules import scripts_postprocessing
-from modules import shared
+from modules import shared, errors
 if hasattr(scripts_postprocessing.ScriptPostprocessing, 'process_firstpass'):  # webui >= 1.7
     from modules.ui_components import InputAccordion
 else:
@@ -76,34 +76,38 @@ class CNInExtrasTab(scripts_postprocessing.ScriptPostprocessing):
     order = 18000
 
     def ui(self):
-        self.default_unit = get_default_ui_unit()
-        with (
-            InputAccordion(False, label=NAME) if InputAccordion
-            else gr.Accordion(NAME, open=False)
-            as self.enable
-        ):
-            if not InputAccordion:
-                self.enable = gr.Checkbox(False, label="Enable")
-            with gr.Row():
-                modulesList = list(getCNModules().keys())
-                self.module = gr.Dropdown(modulesList, label="Module", value=modulesList[0])
-                self.pixel_perfect = gr.Checkbox(
-                    label="Pixel Perfect",
-                    value=True,
-                    elem_id=f"extras_controlnet_pixel_perfect_checkbox",
-                )
-            with gr.Row():
-                self.create_sliders()
-        self.register_build_sliders()
-        args = {
-            'enable': self.enable,
-            'module': self.module,
-            'pixel_perfect': self.pixel_perfect,
-            'processor_res' : self.processor_res,
-            'threshold_a' : self.threshold_a,
-            'threshold_b' : self.threshold_b,
-        }
-        return args
+        try:
+            self.default_unit = get_default_ui_unit()
+            with (
+                InputAccordion(False, label=NAME) if InputAccordion
+                else gr.Accordion(NAME, open=False)
+                as self.enable
+            ):
+                if not InputAccordion:
+                    self.enable = gr.Checkbox(False, label="Enable")
+                with gr.Row():
+                    modulesList = list(getCNModules().keys())
+                    self.module = gr.Dropdown(modulesList, label="Module", value=modulesList[0])
+                    self.pixel_perfect = gr.Checkbox(
+                        label="Pixel Perfect",
+                        value=True,
+                        elem_id=f"extras_controlnet_pixel_perfect_checkbox",
+                    )
+                with gr.Row():
+                    self.create_sliders()
+            self.register_build_sliders()
+            args = {
+                'enable': self.enable,
+                'module': self.module,
+                'pixel_perfect': self.pixel_perfect,
+                'processor_res' : self.processor_res,
+                'threshold_a' : self.threshold_a,
+                'threshold_b' : self.threshold_b,
+            }
+            return args
+        except Exception as e:
+            errors.report(f"Cannot init {NAME}", exc_info=True)
+            return {}
 
 
     def create_sliders(self):
