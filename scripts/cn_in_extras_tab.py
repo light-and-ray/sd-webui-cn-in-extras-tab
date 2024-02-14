@@ -51,7 +51,7 @@ def convertIntoCNImageFromat(image):
         from annotator.util import HWC3
         g_cn_HWC3 = HWC3
 
-    color = g_cn_HWC3(np.asarray(image))
+    color = g_cn_HWC3(np.asarray(image).astype(np.uint8))
     return color
 
 
