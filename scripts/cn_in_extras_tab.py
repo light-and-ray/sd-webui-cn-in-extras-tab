@@ -32,16 +32,15 @@ def getPreprocessorNames():
     global g_preprocessor_names
     if g_preprocessor_names is None:
         if IS_WEBUI_FORGE:
-            g_preprocessor_names = global_state.get_all_preprocessor_names()
+            tmp_list = global_state.get_all_preprocessor_names()
         else:
             import scripts.global_state
-            g_preprocessor_names = copy.copy(scripts.global_state.ui_preprocessor_keys)
-        inpaintKeysIndexes = []
-        for i, key in enumerate(g_preprocessor_names):
-            if key.startswith('inpaint'):
-                inpaintKeysIndexes.append(i)
-        for i in inpaintKeysIndexes:
-            del g_preprocessor_names[i]
+            tmp_list = copy.copy(scripts.global_state.ui_preprocessor_keys)
+        g_preprocessor_names = []
+        for preprocessor in tmp_list:
+            if not preprocessor.startswith('inpaint'):
+                g_preprocessor_names.append(preprocessor)
+
     return g_preprocessor_names
 
 
