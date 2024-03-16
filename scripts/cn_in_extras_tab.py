@@ -9,6 +9,12 @@ if hasattr(scripts_postprocessing.ScriptPostprocessing, 'process_firstpass'):  #
 else:
     InputAccordion = None
 
+try:
+    from lib_controlnet import global_state
+    from lib_controlnet.utils import judge_image_type
+    IS_WEBUI_FORGE = True
+except ImportError:
+    IS_WEBUI_FORGE = False
 
 NAME = 'ControlNet Preprocessor'
 
@@ -19,13 +25,25 @@ def getCNModules():
     if g_cn_modules is None:
         import scripts.global_state
         g_cn_modules = copy.copy(scripts.global_state.cn_preprocessor_modules)
-        inpaintKeys = []
-        for key in g_cn_modules:
-            if key.startswith('inpaint'):
-                inpaintKeys.append(key)
-        for key in inpaintKeys:
-            del g_cn_modules[key]
     return g_cn_modules
+
+g_preprocessor_names = None
+def getPreprocessorNames():
+    global g_preprocessor_names
+    if g_preprocessor_names is None:
+        if IS_WEBUI_FORGE:
+            g_preprocessor_names = global_state.get_all_preprocessor_names()
+        else:
+            import scripts.global_state
+            g_preprocessor_names = copy.copy(scripts.global_state.ui_preprocessor_keys)
+        inpaintKeysIndexes = []
+        for i, key in enumerate(g_preprocessor_names):
+            if key.startswith('inpaint'):
+                inpaintKeysIndexes.append(i)
+        for i in inpaintKeysIndexes:
+            del g_preprocessor_names[i]
+    return g_preprocessor_names
+
 
 
 g_pixel_perfect_resolution = None
@@ -36,7 +54,10 @@ def getPixelPerfectResolution(
         target_W: int):
     global g_pixel_perfect_resolution, g_resize_mode
     if g_pixel_perfect_resolution is None:
-        from scripts import external_code
+        if IS_WEBUI_FORGE:
+            from lib_controlnet import external_code
+        else:
+            from scripts import external_code
         g_pixel_perfect_resolution = external_code.pixel_perfect_resolution
         g_resize_mode = external_code.ResizeMode.RESIZE
 
@@ -62,8 +83,12 @@ def convertImageIntoPILFormat(image):
 
 
 def get_default_ui_unit(is_ui=True):
-    from scripts.controlnet_ui.controlnet_ui_group import UiControlNetUnit
-    from scripts import external_code
+    if IS_WEBUI_FORGE:
+        from lib_controlnet import external_code
+        from lib_controlnet.controlnet_ui.controlnet_ui_group import UiControlNetUnit
+    else:
+        from scripts.controlnet_ui.controlnet_ui_group import UiControlNetUnit
+        from scripts import external_code
     cls = UiControlNetUnit if is_ui else external_code.ControlNetUnit
     return cls(
         enabled=False,
@@ -86,7 +111,7 @@ class CNInExtrasTab(scripts_postprocessing.ScriptPostprocessing):
                 if not InputAccordion:
                     self.enable = gr.Checkbox(False, label="Enable")
                 with gr.Row():
-                    modulesList = list(getCNModules().keys())
+                    modulesList = getPreprocessorNames()
                     self.module = gr.Dropdown(modulesList, label="Module", value=modulesList[0])
                     self.pixel_perfect = gr.Checkbox(
                         label="Pixel Perfect",
@@ -143,73 +168,93 @@ class CNInExtrasTab(scripts_postprocessing.ScriptPostprocessing):
 
 
     def register_build_sliders(self):
-        from scripts.processor import (
-            preprocessor_sliders_config,
-            flag_preprocessor_resolution,
-        )
-        from scripts import global_state
-
-        def build_sliders(module: str, pp: bool):
-            
-            # Clear old slider values so that they do not cause confusion in
-            # infotext.
-            clear_slider_update = gr.update(
-                visible=False,
-                interactive=True,
-                minimum=-1,
-                maximum=-1,
-                value=-1,
+        if not IS_WEBUI_FORGE:
+            from scripts.processor import (
+                preprocessor_sliders_config,
+                flag_preprocessor_resolution,
             )
+            from scripts import global_state as global_state_
 
-            grs = []
-            module = global_state.get_module_basename(module)
-            if module not in preprocessor_sliders_config:
-                default_res_slider_config = dict(
-                    label=flag_preprocessor_resolution,
-                    minimum=64,
-                    maximum=2048,
-                    step=1,
-                )
+        if IS_WEBUI_FORGE:
+            def build_sliders(module: str, pp: bool):
 
-                default_res_slider_config["value"] = 512
+                preprocessor = global_state.get_preprocessor(module)
 
-                grs += [
-                    gr.update(
-                        **default_res_slider_config,
-                        visible=not pp,
-                        interactive=True,
-                    ),
-                    copy.copy(clear_slider_update),
-                    copy.copy(clear_slider_update),
+                slider_resolution_kwargs = preprocessor.slider_resolution.gradio_update_kwargs.copy()
+
+                if pp:
+                    slider_resolution_kwargs['visible'] = False
+
+                grs = [
+                    gr.update(**slider_resolution_kwargs),
+                    gr.update(**preprocessor.slider_1.gradio_update_kwargs.copy()),
+                    gr.update(**preprocessor.slider_2.gradio_update_kwargs.copy()),
                     gr.update(visible=True),
                 ]
-            else:
-                for slider_config in preprocessor_sliders_config[module]:
-                    if isinstance(slider_config, dict):
-                        visible = True
-                        if slider_config["name"] == flag_preprocessor_resolution:
-                            visible = not pp
-                        slider_update = gr.update(
-                            label=slider_config["name"],
-                            minimum=slider_config["min"],
-                            maximum=slider_config["max"],
-                            step=slider_config["step"]
-                            if "step" in slider_config
-                            else 1,
-                            visible=visible,
+
+                return grs
+        else:
+            def build_sliders(module: str, pp: bool):
+                
+                # Clear old slider values so that they do not cause confusion in
+                # infotext.
+                clear_slider_update = gr.update(
+                    visible=False,
+                    interactive=True,
+                    minimum=-1,
+                    maximum=-1,
+                    value=-1,
+                )
+
+                grs = []
+                module = global_state_.get_module_basename(module)
+                if module not in preprocessor_sliders_config:
+                    default_res_slider_config = dict(
+                        label=flag_preprocessor_resolution,
+                        minimum=64,
+                        maximum=2048,
+                        step=1,
+                    )
+
+                    default_res_slider_config["value"] = 512
+
+                    grs += [
+                        gr.update(
+                            **default_res_slider_config,
+                            visible=not pp,
                             interactive=True,
-                        )
-                        slider_update["value"] = slider_config["value"]
+                        ),
+                        copy.copy(clear_slider_update),
+                        copy.copy(clear_slider_update),
+                        gr.update(visible=True),
+                    ]
+                else:
+                    for slider_config in preprocessor_sliders_config[module]:
+                        if isinstance(slider_config, dict):
+                            visible = True
+                            if slider_config["name"] == flag_preprocessor_resolution:
+                                visible = not pp
+                            slider_update = gr.update(
+                                label=slider_config["name"],
+                                minimum=slider_config["min"],
+                                maximum=slider_config["max"],
+                                step=slider_config["step"]
+                                if "step" in slider_config
+                                else 1,
+                                visible=visible,
+                                interactive=True,
+                            )
+                            slider_update["value"] = slider_config["value"]
 
-                        grs.append(slider_update)
+                            grs.append(slider_update)
 
-                    else:
+                        else:
+                            grs.append(copy.copy(clear_slider_update))
+                    while len(grs) < 3:
                         grs.append(copy.copy(clear_slider_update))
-                while len(grs) < 3:
-                    grs.append(copy.copy(clear_slider_update))
-                grs.append(gr.update(visible=True))
+                    grs.append(gr.update(visible=True))
 
-            return grs
+                return grs
 
         inputs = [
             self.module,
@@ -247,13 +292,25 @@ class CNInExtrasTab(scripts_postprocessing.ScriptPostprocessing):
         else:
             processor_res = args['processor_res']
 
-        detected_map, is_image = getCNModules()[args['module']](
-            image,
-            res=processor_res,
-            thr_a=args['threshold_a'],
-            thr_b=args['threshold_b'],
-            low_vram=shared.cmd_opts.lowvram,
-        )
+        if IS_WEBUI_FORGE:
+            module = global_state.get_preprocessor(args['module'])
+            detected_map = module(
+                input_image=image,
+                resolution=processor_res,
+                slider_1=args['threshold_a'],
+                slider_2=args['threshold_b'],
+            )
+            is_image = judge_image_type(detected_map)
+        else:
+            from scripts import global_state as global_state_
+            module = getCNModules()[global_state_.get_module_basename(args['module'])]
+            detected_map, is_image = module(
+                img=image,
+                res=processor_res,
+                thr_a=args['threshold_a'],
+                thr_b=args['threshold_b'],
+                low_vram=shared.cmd_opts.lowvram,
+            )
 
         if is_image:
             pp.image = convertImageIntoPILFormat(detected_map)

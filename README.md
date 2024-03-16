@@ -5,3 +5,5 @@ This extention adds controlnet preprocessing feature from [Mikubill/sd-webui-con
 ![](images/img1.jpg)
 
 You can use it for processing videos, using my other extension: [sd-webui-video-extras-tab](https://github.com/light-and-ray/sd-webui-video-extras-tab)
+
+Also it supports `sd-webui-forge`
