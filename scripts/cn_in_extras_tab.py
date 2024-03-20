@@ -27,6 +27,7 @@ def getCNModules():
         g_cn_modules = copy.copy(scripts.global_state.cn_preprocessor_modules)
     return g_cn_modules
 
+
 forbidden_pefixes = ['inpaint', 'tile', 't2ia_style', 'revision', 'reference',
         'ip-adapter', 'instant_id_face_embedding', ]
 
@@ -134,7 +135,7 @@ class CNInExtrasTab(scripts_postprocessing.ScriptPostprocessing):
             }
             return args
         except Exception as e:
-            errors.report(f"Cannot init {NAME}", exc_info=True)
+            errors.report(f"Cannot init {NAME}: {e}", exc_info=True)
             return {}
 
 
@@ -198,7 +199,6 @@ class CNInExtrasTab(scripts_postprocessing.ScriptPostprocessing):
                 return grs
         else:
             def build_sliders(module: str, pp: bool):
-                
                 # Clear old slider values so that they do not cause confusion in
                 # infotext.
                 clear_slider_update = gr.update(
@@ -320,6 +320,5 @@ class CNInExtrasTab(scripts_postprocessing.ScriptPostprocessing):
             info = copy.copy(args)
             del info['enable']
             if info['pixel_perfect']:
-                info['processor_res'] = processor_res
-            del info['pixel_perfect']
+                del info['processor_res']
             pp.info[NAME] = str(info)
