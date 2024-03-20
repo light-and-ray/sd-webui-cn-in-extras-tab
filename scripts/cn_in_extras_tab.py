@@ -27,7 +27,7 @@ def getCNModules():
         g_cn_modules = copy.copy(scripts.global_state.cn_preprocessor_modules)
     return g_cn_modules
 
-forbidden_pefixes = ['inpaint', 'tile', 't2i_style', 'revision', 'reference',
+forbidden_pefixes = ['inpaint', 'tile', 't2ia_style', 'revision', 'reference',
         'ip-adapter', 'instant_id_face_embedding', ]
 
 g_preprocessor_names = None
