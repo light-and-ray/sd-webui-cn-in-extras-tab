@@ -29,7 +29,7 @@ def getCNModules():
 
 
 forbidden_pefixes = ['inpaint', 'tile', 't2ia_style', 'revision', 'reference',
-        'ip-adapter', 'instant_id_face_embedding', ]
+    'ip-adapter', 'instant_id_face_embedding', 'CLIP', 'InsightFace']
 
 g_preprocessor_names = None
 def getPreprocessorNames():
@@ -42,7 +42,7 @@ def getPreprocessorNames():
             tmp_list = copy.copy(scripts.global_state.ui_preprocessor_keys)
         g_preprocessor_names = []
         for preprocessor in tmp_list:
-            if any(preprocessor.startswith(x) for x in forbidden_pefixes):
+            if any(preprocessor.lower().startswith(x.lower()) for x in forbidden_pefixes):
                 continue
             g_preprocessor_names.append(preprocessor)
 
