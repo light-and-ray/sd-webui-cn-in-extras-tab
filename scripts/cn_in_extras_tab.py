@@ -280,7 +280,7 @@ class CNInExtrasTab(scripts_postprocessing.ScriptPostprocessing):
 
 
     def process(self, pp: scripts_postprocessing.PostprocessedImage, **args):
-        if args['enable'] == False:
+        if args == {} or args['enable'] == False:
             return
         
         w, h = pp.image.size
